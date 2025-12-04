@@ -1,0 +1,28 @@
+#include<iostream>
+#include <vector>
+using namespace std;
+void SelectionSort(vector<int>&vec) {
+
+	for (int i = 0; i < vec.size(); i++) {
+		int minimal = i;
+		for (int j = i + 1; j < vec.size(); j++) {
+			if (vec[j] < vec[minimal])
+				minimal = j;
+
+		}
+		if (minimal != i) {
+			int temp = vec[i];
+			vec[i] = vec[minimal];
+			vec[minimal] = temp;
+		}
+	}
+	
+}
+
+int main() {
+	vector<int>vec = { 10,23,45,2,15 };
+	SelectionSort(vec);
+	for (int i = 0; i < vec.size(); i++)
+		cout << vec[i]<< ' ';
+
+}
