@@ -3,22 +3,18 @@
 #include <chrono>
 #include <random>
 #include <algorithm>
-#include <fstream>
 #include <iomanip>
-#include <numeric>
 #include <cmath>
 
 using namespace std;
 using namespace std::chrono;
 
-// ==================== СТРУКТУРА ДЛЯ РЕЗУЛЬТАТОВ ====================
 struct SortResult {
     long long comparisons;
     long long swaps;
     double time_ms;
 };
 
-// ==================== ПИРАМИДАЛЬНАЯ СОРТИРОВКА ====================
 void heapify(vector<int>& arr, int n, int i, long long& comparisons, long long& swaps) {
     while (true) {
         int largest = i;
@@ -55,12 +51,10 @@ SortResult heapSort(vector<int>& arr) {
 
     auto start = high_resolution_clock::now();
 
-    // Построение max-кучи
     for (int i = n / 2 - 1; i >= 0; i--) {
         heapify(arr, n, i, comparisons, swaps);
     }
 
-    // Сортировка
     for (int i = n - 1; i > 0; i--) {
         swap(arr[0], arr[i]);
         swaps++;
@@ -73,7 +67,6 @@ SortResult heapSort(vector<int>& arr) {
     return { comparisons, swaps, time_ms };
 }
 
-// ==================== СОРТИРОВКА ВЫБОРОМ ====================
 SortResult selectionSort(vector<int>& arr) {
     long long comparisons = 0;
     long long swaps = 0;
@@ -84,7 +77,6 @@ SortResult selectionSort(vector<int>& arr) {
     for (int i = 0; i < n - 1; i++) {
         int min_idx = i;
 
-        // Поиск минимального элемента в неотсортированной части
         for (int j = i + 1; j < n; j++) {
             comparisons++;
             if (arr[j] < arr[min_idx]) {
@@ -92,7 +84,6 @@ SortResult selectionSort(vector<int>& arr) {
             }
         }
 
-        // Обмен, если нашли минимальный элемент не на текущей позиции
         if (min_idx != i) {
             swap(arr[i], arr[min_idx]);
             swaps++;
@@ -105,26 +96,6 @@ SortResult selectionSort(vector<int>& arr) {
     return { comparisons, swaps, time_ms };
 }
 
-// ==================== STD::SORT ====================
-SortResult stdSort(vector<int>& arr) {
-    long long comparisons = 0;
-    long long swaps = 0;
-
-    auto start = high_resolution_clock::now();
-    sort(arr.begin(), arr.end());
-    auto end = high_resolution_clock::now();
-
-    double time_ms = duration_cast<microseconds>(end - start).count() / 1000.0;
-
-    // Для std::sort точное количество операций неизвестно, используем приближения
-    long long n = arr.size();
-    comparisons = n * log2(n) * 1.5;  // O(n log n)
-    swaps = n * log2(n) * 0.75;       // Приблизительная оценка
-
-    return { comparisons, swaps, time_ms };
-}
-
-// ==================== ГЕНЕРАЦИЯ ТЕСТОВЫХ ДАННЫХ ====================
 vector<int> generateRandomArray(int size) {
     vector<int> arr(size);
     random_device rd;
@@ -137,16 +108,13 @@ vector<int> generateRandomArray(int size) {
     return arr;
 }
 
-// Генерация почти отсортированного массива
 vector<int> generateAlmostSortedArray(int size, double disorderPercentage = 0.05) {
     vector<int> arr(size);
 
-    // Сначала создаем полностью отсортированный массив
     for (int i = 0; i < size; i++) {
         arr[i] = i + 1;
     }
 
-    // Вносим беспорядок: переставляем случайные элементы
     random_device rd;
     mt19937 gen(rd());
     int numDisorders = static_cast<int>(size * disorderPercentage);
@@ -160,7 +128,6 @@ vector<int> generateAlmostSortedArray(int size, double disorderPercentage = 0.05
     return arr;
 }
 
-// ==================== ПРОВЕРКА ОТСОРТИРОВАННОСТИ ====================
 bool isSorted(const vector<int>& arr) {
     for (size_t i = 1; i < arr.size(); i++) {
         if (arr[i] < arr[i - 1])
@@ -169,261 +136,164 @@ bool isSorted(const vector<int>& arr) {
     return true;
 }
 
-// ==================== ТЕСТИРОВАНИЕ НА СЛУЧАЙНЫХ МАССИВАХ ====================
+void printTableHeader() {
+    cout << "\n" << string(120, '=') << endl;
+    cout << setw(10) << "Размер";
+    cout << setw(20) << "Selection (мс)";
+    cout << setw(20) << "Heap (мс)";
+    cout << setw(20) << "Sel свопы";
+    cout << setw(20) << "Heap свопы";
+    cout << setw(15) << "Sel сравн";
+    cout << setw(15) << "Heap сравн" << endl;
+    cout << string(120, '=') << endl;
+}
+
 void runRandomTest() {
-    // Размеры данных
     vector<int> sizes = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
     const int TESTS_PER_SIZE = 100;
 
-    cout << "=============================================" << endl;
-    cout << "ТЕСТИРОВАНИЕ НА СЛУЧАЙНЫХ МАССИВАХ" << endl;
-    cout << "=============================================" << endl;
+    cout << "\nТЕСТИРОВАНИЕ НА СЛУЧАЙНЫХ МАССИВАХ" << endl;
     cout << "Размеры: ";
     for (int size : sizes) cout << size << " ";
     cout << "\nТестов на размер: " << TESTS_PER_SIZE << endl;
-    cout << "Алгоритмы: selection, heap, std" << endl;
-    cout << "=============================================" << endl;
 
-    // Заголовок таблицы
-    cout << "\n" << string(100, '=') << endl;
-    cout << setw(10) << "Размер"
-        << setw(20) << "Selection (мс)"
-        << setw(20) << "Heap (мс)"
-        << setw(20) << "std::sort (мс)"
-        << setw(20) << "Selection свопы"
-        << setw(20) << "Heap свопы" << endl;
-    cout << string(100, '=') << endl;
-
-    // Файл для сохранения результатов
-    ofstream results_file("random_results.csv");
-    results_file << "Size,Selection_Time,Heap_Time,Std_Time,Selection_Swaps,Heap_Swaps,Selection_Comparisons,Heap_Comparisons" << endl;
+    printTableHeader();
 
     for (int size : sizes) {
-        cout << "\nТестируем размер: " << size << endl;
+        long long total_sel_time = 0;
+        long long total_heap_time = 0;
+        long long total_sel_swaps = 0;
+        long long total_heap_swaps = 0;
+        long long total_sel_comps = 0;
+        long long total_heap_comps = 0;
 
-        // Векторы для хранения результатов
-        vector<double> selection_times, heap_times, std_times;
-        vector<long long> selection_swaps, heap_swaps, selection_comps, heap_comps;
+        for (int test = 0; test < TESTS_PER_SIZE; test++) {
+            vector<int> original = generateRandomArray(size);
 
-        for (int test_num = 0; test_num < TESTS_PER_SIZE; test_num++) {
-            // Генерация случайного массива
-            vector<int> original_data = generateRandomArray(size);
+            vector<int> data1 = original;
+            SortResult sel_res = selectionSort(data1);
+            total_sel_time += sel_res.time_ms;
+            total_sel_swaps += sel_res.swaps;
+            total_sel_comps += sel_res.comparisons;
 
-            // Тестируем Selection Sort
-            vector<int> selection_data = original_data;
-            SortResult selection_result = selectionSort(selection_data);
-            selection_times.push_back(selection_result.time_ms);
-            selection_swaps.push_back(selection_result.swaps);
-            selection_comps.push_back(selection_result.comparisons);
+            vector<int> data2 = original;
+            SortResult heap_res = heapSort(data2);
+            total_heap_time += heap_res.time_ms;
+            total_heap_swaps += heap_res.swaps;
+            total_heap_comps += heap_res.comparisons;
 
-            // Тестируем Heap Sort
-            vector<int> heap_data = original_data;
-            SortResult heap_result = heapSort(heap_data);
-            heap_times.push_back(heap_result.time_ms);
-            heap_swaps.push_back(heap_result.swaps);
-            heap_comps.push_back(heap_result.comparisons);
-
-            // Тестируем std::sort
-            vector<int> std_data = original_data;
-            SortResult std_result = stdSort(std_data);
-            std_times.push_back(std_result.time_ms);
-
-            // Проверка корректности
-            if (!isSorted(selection_data) || !isSorted(heap_data) || !isSorted(std_data)) {
-                cerr << "ОШИБКА: Сортировка не удалась для размера " << size << endl;
-            }
-
-            // Прогресс
-            if ((test_num + 1) % 20 == 0) {
-                cout << "  Завершено " << (test_num + 1) << "/" << TESTS_PER_SIZE << " тестов" << endl;
+            if (!isSorted(data1) || !isSorted(data2)) {
+                cout << "ОШИБКА сортировки!" << endl;
             }
         }
 
-        // Вычисляем средние значения
-        double avg_selection_time = accumulate(selection_times.begin(), selection_times.end(), 0.0) / TESTS_PER_SIZE;
-        double avg_heap_time = accumulate(heap_times.begin(), heap_times.end(), 0.0) / TESTS_PER_SIZE;
-        double avg_std_time = accumulate(std_times.begin(), std_times.end(), 0.0) / TESTS_PER_SIZE;
+        double avg_sel_time = total_sel_time / (double)TESTS_PER_SIZE;
+        double avg_heap_time = total_heap_time / (double)TESTS_PER_SIZE;
+        long long avg_sel_swaps = total_sel_swaps / TESTS_PER_SIZE;
+        long long avg_heap_swaps = total_heap_swaps / TESTS_PER_SIZE;
+        long long avg_sel_comps = total_sel_comps / TESTS_PER_SIZE;
+        long long avg_heap_comps = total_heap_comps / TESTS_PER_SIZE;
 
-        long long avg_selection_swaps = accumulate(selection_swaps.begin(), selection_swaps.end(), 0LL) / TESTS_PER_SIZE;
-        long long avg_heap_swaps = accumulate(heap_swaps.begin(), heap_swaps.end(), 0LL) / TESTS_PER_SIZE;
-        long long avg_selection_comps = accumulate(selection_comps.begin(), selection_comps.end(), 0LL) / TESTS_PER_SIZE;
-        long long avg_heap_comps = accumulate(heap_comps.begin(), heap_comps.end(), 0LL) / TESTS_PER_SIZE;
-
-        // Вывод результатов в таблицу
-        cout << fixed << setprecision(6);
-        cout << setw(10) << size
-            << setw(20) << avg_selection_time
-            << setw(20) << avg_heap_time
-            << setw(20) << avg_std_time
-            << setw(20) << avg_selection_swaps
-            << setw(20) << avg_heap_swaps << endl;
-
-        // Сохранение в файл
-        results_file << size << ","
-            << avg_selection_time << ","
-            << avg_heap_time << ","
-            << avg_std_time << ","
-            << avg_selection_swaps << ","
-            << avg_heap_swaps << ","
-            << avg_selection_comps << ","
-            << avg_heap_comps << endl;
+        cout << fixed << setprecision(4);
+        cout << setw(10) << size;
+        cout << setw(20) << avg_sel_time;
+        cout << setw(20) << avg_heap_time;
+        cout << setw(20) << avg_sel_swaps;
+        cout << setw(20) << avg_heap_swaps;
+        cout << setw(15) << avg_sel_comps;
+        cout << setw(15) << avg_heap_comps << endl;
     }
-
-    results_file.close();
-
-    cout << "\n" << string(100, '=') << endl;
-    cout << "ТЕСТИРОВАНИЕ ЗАВЕРШЕНО!" << endl;
-    cout << "Результаты сохранены в файл: random_results.csv" << endl;
 }
 
-// ==================== ТЕСТИРОВАНИЕ НА ПОЧТИ ОТСОРТИРОВАННЫХ МАССИВАХ ====================
 void runAlmostSortedTest() {
-    // Размеры данных
     vector<int> sizes = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
     const int TESTS_PER_SIZE = 100;
-    const double DISORDER_PERCENTAGE = 0.05; // 5% элементов не на своем месте
+    const double DISORDER = 0.05;
 
-    cout << "=============================================" << endl;
-    cout << "ТЕСТИРОВАНИЕ НА ПОЧТИ ОТСОРТИРОВАННЫХ МАССИВАХ" << endl;
-    cout << "=============================================" << endl;
+    cout << "\nТЕСТИРОВАНИЕ НА ПОЧТИ ОТСОРТИРОВАННЫХ МАССИВАХ" << endl;
     cout << "Размеры: ";
     for (int size : sizes) cout << size << " ";
     cout << "\nТестов на размер: " << TESTS_PER_SIZE << endl;
-    cout << "Процент беспорядка: " << (DISORDER_PERCENTAGE * 100) << "%" << endl;
-    cout << "Алгоритмы: selection, heap, std" << endl;
-    cout << "=============================================" << endl;
+    cout << "Беспорядок: " << (DISORDER * 100) << "%" << endl;
 
-    // Заголовок таблицы
-    cout << "\n" << string(100, '=') << endl;
-    cout << setw(10) << "Размер"
-        << setw(20) << "Selection (мс)"
-        << setw(20) << "Heap (мс)"
-        << setw(20) << "std::sort (мс)"
-        << setw(20) << "Selection свопы"
-        << setw(20) << "Heap свопы" << endl;
-    cout << string(100, '=') << endl;
-
-    // Файл для сохранения результатов
-    ofstream results_file("almost_sorted_results.csv");
-    results_file << "Size,Selection_Time,Heap_Time,Std_Time,Selection_Swaps,Heap_Swaps,Selection_Comparisons,Heap_Comparisons" << endl;
+    printTableHeader();
 
     for (int size : sizes) {
-        cout << "\nТестируем размер: " << size << endl;
+        long long total_sel_time = 0;
+        long long total_heap_time = 0;
+        long long total_sel_swaps = 0;
+        long long total_heap_swaps = 0;
+        long long total_sel_comps = 0;
+        long long total_heap_comps = 0;
 
-        // Векторы для хранения результатов
-        vector<double> selection_times, heap_times, std_times;
-        vector<long long> selection_swaps, heap_swaps, selection_comps, heap_comps;
+        for (int test = 0; test < TESTS_PER_SIZE; test++) {
+            vector<int> original = generateAlmostSortedArray(size, DISORDER);
 
-        for (int test_num = 0; test_num < TESTS_PER_SIZE; test_num++) {
-            // Генерация почти отсортированного массива
-            vector<int> original_data = generateAlmostSortedArray(size, DISORDER_PERCENTAGE);
+            vector<int> data1 = original;
+            SortResult sel_res = selectionSort(data1);
+            total_sel_time += sel_res.time_ms;
+            total_sel_swaps += sel_res.swaps;
+            total_sel_comps += sel_res.comparisons;
 
-            // Тестируем Selection Sort
-            vector<int> selection_data = original_data;
-            SortResult selection_result = selectionSort(selection_data);
-            selection_times.push_back(selection_result.time_ms);
-            selection_swaps.push_back(selection_result.swaps);
-            selection_comps.push_back(selection_result.comparisons);
+            vector<int> data2 = original;
+            SortResult heap_res = heapSort(data2);
+            total_heap_time += heap_res.time_ms;
+            total_heap_swaps += heap_res.swaps;
+            total_heap_comps += heap_res.comparisons;
 
-            // Тестируем Heap Sort
-            vector<int> heap_data = original_data;
-            SortResult heap_result = heapSort(heap_data);
-            heap_times.push_back(heap_result.time_ms);
-            heap_swaps.push_back(heap_result.swaps);
-            heap_comps.push_back(heap_result.comparisons);
-
-            // Тестируем std::sort
-            vector<int> std_data = original_data;
-            SortResult std_result = stdSort(std_data);
-            std_times.push_back(std_result.time_ms);
-
-            // Проверка корректности
-            if (!isSorted(selection_data) || !isSorted(heap_data) || !isSorted(std_data)) {
-                cerr << "ОШИБКА: Сортировка не удалась для размера " << size << endl;
-            }
-
-            // Прогресс
-            if ((test_num + 1) % 20 == 0) {
-                cout << "  Завершено " << (test_num + 1) << "/" << TESTS_PER_SIZE << " тестов" << endl;
+            if (!isSorted(data1) || !isSorted(data2)) {
+                cout << "ОШИБКА сортировки!" << endl;
             }
         }
 
-        // Вычисляем средние значения
-        double avg_selection_time = accumulate(selection_times.begin(), selection_times.end(), 0.0) / TESTS_PER_SIZE;
-        double avg_heap_time = accumulate(heap_times.begin(), heap_times.end(), 0.0) / TESTS_PER_SIZE;
-        double avg_std_time = accumulate(std_times.begin(), std_times.end(), 0.0) / TESTS_PER_SIZE;
+        double avg_sel_time = total_sel_time / (double)TESTS_PER_SIZE;
+        double avg_heap_time = total_heap_time / (double)TESTS_PER_SIZE;
+        long long avg_sel_swaps = total_sel_swaps / TESTS_PER_SIZE;
+        long long avg_heap_swaps = total_heap_swaps / TESTS_PER_SIZE;
+        long long avg_sel_comps = total_sel_comps / TESTS_PER_SIZE;
+        long long avg_heap_comps = total_heap_comps / TESTS_PER_SIZE;
 
-        long long avg_selection_swaps = accumulate(selection_swaps.begin(), selection_swaps.end(), 0LL) / TESTS_PER_SIZE;
-        long long avg_heap_swaps = accumulate(heap_swaps.begin(), heap_swaps.end(), 0LL) / TESTS_PER_SIZE;
-        long long avg_selection_comps = accumulate(selection_comps.begin(), selection_comps.end(), 0LL) / TESTS_PER_SIZE;
-        long long avg_heap_comps = accumulate(heap_comps.begin(), heap_comps.end(), 0LL) / TESTS_PER_SIZE;
-
-        // Вывод результатов в таблицу
-        cout << fixed << setprecision(6);
-        cout << setw(10) << size
-            << setw(20) << avg_selection_time
-            << setw(20) << avg_heap_time
-            << setw(20) << avg_std_time
-            << setw(20) << avg_selection_swaps
-            << setw(20) << avg_heap_swaps << endl;
-
-        // Сохранение в файл
-        results_file << size << ","
-            << avg_selection_time << ","
-            << avg_heap_time << ","
-            << avg_std_time << ","
-            << avg_selection_swaps << ","
-            << avg_heap_swaps << ","
-            << avg_selection_comps << ","
-            << avg_heap_comps << endl;
+        cout << fixed << setprecision(4);
+        cout << setw(10) << size;
+        cout << setw(20) << avg_sel_time;
+        cout << setw(20) << avg_heap_time;
+        cout << setw(20) << avg_sel_swaps;
+        cout << setw(20) << avg_heap_swaps;
+        cout << setw(15) << avg_sel_comps;
+        cout << setw(15) << avg_heap_comps << endl;
     }
-
-    results_file.close();
-
-    cout << "\n" << string(100, '=') << endl;
-    cout << "ТЕСТИРОВАНИЕ ЗАВЕРШЕНО!" << endl;
-    cout << "Результаты сохранены в файл: almost_sorted_results.csv" << endl;
 }
 
-// ==================== ВЫБОР РЕЖИМА ТЕСТИРОВАНИЯ ====================
-void runTest() {
-    cout << "=============================================" << endl;
-    cout << "ПРОГРАММА ТЕСТИРОВАНИЯ АЛГОРИТМОВ СОРТИРОВКИ" << endl;
-    cout << "=============================================" << endl;
+int main() {
+    setlocale(LC_ALL, "Russian");
+
+    cout << "ПРОГРАММА ТЕСТИРОВАНИЯ СОРТИРОВОК" << endl;
+    cout << "=================================" << endl;
 
     while (true) {
-        cout << "\nВыберите режим тестирования:" << endl;
-        cout << "1. Тестирование на случайных массивах" << endl;
-        cout << "2. Тестирование на почти отсортированных массивах" << endl;
-        cout << "3. Выйти из программы" << endl;
-        cout << "Введите номер (1, 2 или 3): ";
+        cout << "\nВыберите тест:" << endl;
+        cout << "1 - Случайные массивы" << endl;
+        cout << "2 - Почти отсортированные массивы" << endl;
+        cout << "3 - Выход" << endl;
+        cout << "> ";
 
         int choice;
         cin >> choice;
 
         if (choice == 1) {
-            cout << "\nЗапуск теста на случайных массивах..." << endl;
             runRandomTest();
         }
         else if (choice == 2) {
-            cout << "\nЗапуск теста на почти отсортированных массивах..." << endl;
             runAlmostSortedTest();
         }
         else if (choice == 3) {
-            cout << "\nВыход из программы..." << endl;
+            cout << "Выход..." << endl;
             break;
         }
         else {
-            cout << "\nНеверный выбор. Пожалуйста, выберите 1, 2 или 3." << endl;
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Неверный выбор!" << endl;
         }
     }
-}
 
-// ==================== MAIN ====================
-int main() {
-    setlocale(LC_ALL, "RuS");
-    runTest();
     return 0;
 }
