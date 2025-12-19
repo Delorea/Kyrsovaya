@@ -9,74 +9,85 @@
 using namespace std;
 using namespace std::chrono;
 
+// Структура для хранения результатов сортировки
 struct SortResult {
-    long long comparisons;
-    long long swaps;
-    double time_ms;
+    long long comparisons; // Количество сравнений
+    long long swaps;       // Количество перестановок
+    double time_ms;        // Время выполнения в миллисекундах
 };
 
+// Функция для восстановления свойства кучи (пирамиды)
 void heapify(vector<int>& arr, int n, int i, long long& comparisons, long long& swaps) {
     while (true) {
-        int largest = i;
-        int left = 2 * i + 1;
-        int right = 2 * i + 2;
+        int largest = i;        // Текущий узел как наибольший
+        int left = 2 * i + 1;   // Левый потомок
+        int right = 2 * i + 2;  // Правый потомок
 
+        // Сравнение с левым потомком
         if (left < n) {
             comparisons++;
             if (arr[left] > arr[largest])
                 largest = left;
         }
 
+        // Сравнение с правым потомком
         if (right < n) {
             comparisons++;
             if (arr[right] > arr[largest])
                 largest = right;
         }
 
+        // Если наибольший элемент не текущий, меняем местами и продолжаем
         if (largest != i) {
             swap(arr[i], arr[largest]);
             swaps++;
             i = largest;
         }
         else {
-            break;
+            break; // Свойство кучи восстановлено
         }
     }
 }
 
+// Пирамидальная сортировка (Heapsort)
 SortResult heapSort(vector<int>& arr) {
     long long comparisons = 0;
     long long swaps = 0;
     int n = arr.size();
 
-    auto start = high_resolution_clock::now();
+    auto start = high_resolution_clock::now(); // Начало замера времени
 
+    // Построение максимальной кучи (первый этап)
     for (int i = n / 2 - 1; i >= 0; i--) {
         heapify(arr, n, i, comparisons, swaps);
     }
 
+    // Извлечение элементов из кучи (второй этап)
     for (int i = n - 1; i > 0; i--) {
-        swap(arr[0], arr[i]);
+        swap(arr[0], arr[i]); // Перемещаем текущий максимум в конец
         swaps++;
-        heapify(arr, i, 0, comparisons, swaps);
+        heapify(arr, i, 0, comparisons, swaps); // Восстанавливаем кучу для оставшихся элементов
     }
 
-    auto end = high_resolution_clock::now();
+    auto end = high_resolution_clock::now(); // Конец замера времени
+    // Преобразование времени в миллисекунды
     double time_ms = duration_cast<microseconds>(end - start).count() / 1000.0;
 
     return { comparisons, swaps, time_ms };
 }
 
+// Сортировка выбором (Selection sort)
 SortResult selectionSort(vector<int>& arr) {
     long long comparisons = 0;
     long long swaps = 0;
     int n = arr.size();
 
-    auto start = high_resolution_clock::now();
+    auto start = high_resolution_clock::now(); // Начало замера времени
 
     for (int i = 0; i < n - 1; i++) {
-        int min_idx = i;
+        int min_idx = i; // Индекс минимального элемента в неотсортированной части
 
+        // Поиск минимального элемента в оставшейся части массива
         for (int j = i + 1; j < n; j++) {
             comparisons++;
             if (arr[j] < arr[min_idx]) {
@@ -84,23 +95,25 @@ SortResult selectionSort(vector<int>& arr) {
             }
         }
 
+        // Если найденный минимум не на текущей позиции, меняем местами
         if (min_idx != i) {
             swap(arr[i], arr[min_idx]);
             swaps++;
         }
     }
 
-    auto end = high_resolution_clock::now();
+    auto end = high_resolution_clock::now(); // Конец замера времени
     double time_ms = duration_cast<microseconds>(end - start).count() / 1000.0;
 
     return { comparisons, swaps, time_ms };
 }
 
+// Генерация случайного массива
 vector<int> generateRandomArray(int size) {
     vector<int> arr(size);
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_int_distribution<int> dist(1, size * 10);
+    random_device rd;  // Источник энтропии
+    mt19937 gen(rd()); // Генератор Mersenne Twister
+    uniform_int_distribution<int> dist(1, size * 10); // Равномерное распределение
 
     for (int i = 0; i < size; i++) {
         arr[i] = dist(gen);
@@ -108,17 +121,21 @@ vector<int> generateRandomArray(int size) {
     return arr;
 }
 
+// Генерация почти отсортированного массива
 vector<int> generateAlmostSortedArray(int size, double disorderPercentage = 0.05) {
     vector<int> arr(size);
 
+    // Создаем полностью отсортированный массив
     for (int i = 0; i < size; i++) {
         arr[i] = i + 1;
     }
 
     random_device rd;
     mt19937 gen(rd());
+    // Вычисляем количество беспорядочных элементов
     int numDisorders = static_cast<int>(size * disorderPercentage);
 
+    // Переставляем случайные элементы для создания беспорядка
     for (int i = 0; i < numDisorders; i++) {
         int idx1 = uniform_int_distribution<int>(0, size - 1)(gen);
         int idx2 = uniform_int_distribution<int>(0, size - 1)(gen);
@@ -128,6 +145,7 @@ vector<int> generateAlmostSortedArray(int size, double disorderPercentage = 0.05
     return arr;
 }
 
+// Проверка отсортированности массива
 bool isSorted(const vector<int>& arr) {
     for (size_t i = 1; i < arr.size(); i++) {
         if (arr[i] < arr[i - 1])
@@ -136,6 +154,7 @@ bool isSorted(const vector<int>& arr) {
     return true;
 }
 
+// Вывод заголовка таблицы результатов
 void printTableHeader() {
     cout << "\n" << string(120, '=') << endl;
     cout << setw(10) << "Размер";
@@ -148,9 +167,10 @@ void printTableHeader() {
     cout << string(120, '=') << endl;
 }
 
+// Тестирование на случайных массивах
 void runRandomTest() {
     vector<int> sizes = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
-    const int TESTS_PER_SIZE = 100;
+    const int TESTS_PER_SIZE = 100; // Количество тестов для каждого размера
 
     cout << "\nТЕСТИРОВАНИЕ НА СЛУЧАЙНЫХ МАССИВАХ" << endl;
     cout << "Размеры: ";
@@ -159,6 +179,7 @@ void runRandomTest() {
 
     printTableHeader();
 
+    // Тестирование для каждого размера массива
     for (int size : sizes) {
         long long total_sel_time = 0;
         long long total_heap_time = 0;
@@ -167,26 +188,31 @@ void runRandomTest() {
         long long total_sel_comps = 0;
         long long total_heap_comps = 0;
 
+        // Многократное выполнение тестов для усреднения результатов
         for (int test = 0; test < TESTS_PER_SIZE; test++) {
             vector<int> original = generateRandomArray(size);
 
+            // Тестирование сортировки выбором
             vector<int> data1 = original;
             SortResult sel_res = selectionSort(data1);
             total_sel_time += sel_res.time_ms;
             total_sel_swaps += sel_res.swaps;
             total_sel_comps += sel_res.comparisons;
 
+            // Тестирование пирамидальной сортировки
             vector<int> data2 = original;
             SortResult heap_res = heapSort(data2);
             total_heap_time += heap_res.time_ms;
             total_heap_swaps += heap_res.swaps;
             total_heap_comps += heap_res.comparisons;
 
+            // Проверка корректности сортировки
             if (!isSorted(data1) || !isSorted(data2)) {
                 cout << "ОШИБКА сортировки!" << endl;
             }
         }
 
+        // Вычисление средних значений
         double avg_sel_time = total_sel_time / (double)TESTS_PER_SIZE;
         double avg_heap_time = total_heap_time / (double)TESTS_PER_SIZE;
         long long avg_sel_swaps = total_sel_swaps / TESTS_PER_SIZE;
@@ -194,6 +220,7 @@ void runRandomTest() {
         long long avg_sel_comps = total_sel_comps / TESTS_PER_SIZE;
         long long avg_heap_comps = total_heap_comps / TESTS_PER_SIZE;
 
+        // Вывод результатов
         cout << fixed << setprecision(4);
         cout << setw(10) << size;
         cout << setw(20) << avg_sel_time;
@@ -205,10 +232,11 @@ void runRandomTest() {
     }
 }
 
+// Тестирование на почти отсортированных массивах
 void runAlmostSortedTest() {
     vector<int> sizes = { 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000 };
     const int TESTS_PER_SIZE = 100;
-    const double DISORDER = 0.05;
+    const double DISORDER = 0.05; // 5% беспорядка
 
     cout << "\nТЕСТИРОВАНИЕ НА ПОЧТИ ОТСОРТИРОВАННЫХ МАССИВАХ" << endl;
     cout << "Размеры: ";
@@ -218,6 +246,7 @@ void runAlmostSortedTest() {
 
     printTableHeader();
 
+    // Аналогично тестированию на случайных массивах
     for (int size : sizes) {
         long long total_sel_time = 0;
         long long total_heap_time = 0;
@@ -264,12 +293,14 @@ void runAlmostSortedTest() {
     }
 }
 
+// Основная функция программы
 int main() {
-    setlocale(LC_ALL, "Russian");
+    setlocale(LC_ALL, "Russian"); // Установка русской локали
 
     cout << "ПРОГРАММА ТЕСТИРОВАНИЯ СОРТИРОВОК" << endl;
     cout << "=================================" << endl;
 
+    // Главный цикл меню
     while (true) {
         cout << "\nВыберите тест:" << endl;
         cout << "1 - Случайные массивы" << endl;
